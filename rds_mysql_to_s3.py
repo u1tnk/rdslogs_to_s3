@@ -13,7 +13,8 @@
 #
 
 import boto3, botocore
-
+from datetime import datetime
+	
 ## Set the values below if using Lambda Scheduled Event as an Event Source, otherwise leave empty and send data through the Lambda event payload
 S3BCUKET=''
 S3PREFIX=''
@@ -75,9 +76,9 @@ def lambda_handler(event, context):
 			while logFile['AdditionalDataPending']:
 				logFile = RDSclient.download_db_log_file_portion(DBInstanceIdentifier=RDSInstanceName, LogFileName=dbLog['LogFileName'],Marker=logFile['Marker'])
 				logFileData += logFile['LogFileData']
-			byteData = str.encode(logFileData)
+			byteData = logFileData.encode('utf-8')
 			try:
-				objectName = S3BucketPrefix + dbLog['LogFileName']
+				objectName = S3BucketPrefix + datetime.now().strftime("%Y/%m/%d/%H/") + dbLog['LogFileName']
 				S3response = S3client.put_object(Bucket=S3BucketName, Key=objectName,Body=byteData)
 			except botocore.exceptions.ClientError as e:
 				return "Error writting object to S3 bucket, S3 ClientError: " + e.response['Error']['Message']
@@ -88,13 +89,3 @@ def lambda_handler(event, context):
 		return "Error writting object to S3 bucket, S3 ClientError: " + e.response['Error']['Message']
 	print("Wrote new Last Written Marker to %s in Bucket %s" % (lastRecievedFile,S3BucketName))
 	return "Log file export complete"
-
-
-
-
-
-
-
-
-
-
